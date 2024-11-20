@@ -1,0 +1,551 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Booking API
+servers:
+  - url: https://local.allbin.se:50000
+    description: Local dev environment
+  - url: https://api.booking.dev.allbin.se
+    description: Development deployment
+  - url: https://api.booking.test.allbin.se
+    description: Test deployment
+  - url: https://api.booking.allbin.se
+    description: Production deployment
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        '200':
+          $ref: '#/components/responses/Health'
+        '500':
+          $ref: '#/components/responses/Health'
+        '503':
+          $ref: '#/components/responses/Health'
+  /ready:
+    get:
+      summary: Readiness Check
+      operationId: readinessCheck
+      responses:
+        '200':
+          $ref: '#/components/responses/Health'
+        '500':
+          $ref: '#/components/responses/Health'
+        '503':
+          $ref: '#/components/responses/Health'
+  /resources:
+    get:
+      description: List Resources
+      operationId: list_resources
+      tags:
+        - resources
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: A list of resources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Resource'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      description: Create resource
+      operationId: create_resource
+      tags:
+        - resources
+      security:
+        - BearerAuth:
+            - resources:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceCreateRequest'
+      responses:
+        '201':
+          description: A created resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /schemas:
+    get:
+      description: List Schemas
+      operationId: list_schemas
+      tags:
+        - schemas
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: A list of schemas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Schema'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      description: Create schema
+      operationId: create_schema
+      tags:
+        - schemas
+      security:
+        - BearerAuth:
+            - schemas:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchemaCreateRequest'
+      responses:
+        '201':
+          description: A created schema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schema'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /schemas/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      description: Delete schema
+      operationId: delete_schema
+      tags:
+        - schemas
+      security:
+        - BearerAuth:
+            - schemas:edit
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /bookings:
+    get:
+      description: List Bookings
+      operationId: list_bookings
+      tags:
+        - bookings
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: A list of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Booking'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      description: Create Booking
+      operationId: create_booking
+      security:
+        - BearerAuth:
+            - bookings:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingCreateRequest'
+      responses:
+        '201':
+          description: A created Booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Model:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          example: acme
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ResourceILoqData:
+      title: ResourceILoqData
+      type: object
+      required:
+        - calendar_id
+        - network_module
+      properties:
+        calendar_id:
+          type: string
+          description: refers to ILoq /api/v2/CalendarDataTitle
+        network_module:
+          type: object
+          required:
+            - id
+            - device_id
+            - relay_id
+          properties:
+            id:
+              type: string
+              description: refers to ILoq /api/v2/NetworkModule
+            device_id:
+              type: string
+              description: refers to ILoq /api/v2/NetworkModuleDevice
+            relay_id:
+              type: string
+              description: refers to ILoq /api/v2/NetworkModuleRelay
+    ResourceILoq:
+      title: ResourceILoq
+      type: object
+      required:
+        - type
+        - data
+      properties:
+        type:
+          type: string
+          enum:
+            - iloq
+        data:
+          $ref: '#/components/schemas/ResourceILoqData'
+    ResourceCreateRequest:
+      title: ResourceCreateRequest
+      oneOf:
+        - $ref: '#/components/schemas/ResourceILoq'
+      discriminator:
+        propertyName: type
+        mapping:
+          iloq: '#/components/schemas/ResourceILoq'
+    Resource:
+      title: Resource
+      allOf:
+        - $ref: '#/components/schemas/Model'
+        - $ref: '#/components/schemas/ResourceCreateRequest'
+    Error:
+      title: Error
+      type: object
+      required:
+        - message
+        - request_id
+      properties:
+        message:
+          type: string
+          example: error message
+        description:
+          type: string
+          example: error description
+        request_id:
+          type: string
+          example: PbMtZxrFhLNciaVMndIZkdQMHyiKUerV
+    SchemaSlot:
+      title: SchemaSlot
+      type: object
+      required:
+        - from
+        - to
+      properties:
+        from:
+          type: string
+          description: |
+            24h time of day without seconds, i.e "HH:mm".
+            hours > 24 allowed for timeslots that span
+            across midnight into the next day.
+          example: '04:00'
+        to:
+          type: string
+          description: |
+            24h time of day without seconds, i.e "HH:mm".
+            hours > 24 allowed for timeslots that span
+            across midnight into the next day.
+          example: '06:00'
+    SchemaRuleDaily:
+      title: SchemaRuleDaily
+      type: object
+      required:
+        - type
+        - slots
+      properties:
+        type:
+          type: string
+          enum:
+            - daily
+        slots:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/SchemaSlot'
+    SchemaRuleWeekly:
+      title: SchemaRuleDaily
+      type: object
+      required:
+        - type
+        - slots
+      properties:
+        type:
+          type: string
+          enum:
+            - weekly
+        slots:
+          type: array
+          minItems: 7
+          maxItems: 7
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/SchemaSlot'
+    SchemaData:
+      title: SchemaData
+      oneOf:
+        - $ref: '#/components/schemas/SchemaRuleDaily'
+        - $ref: '#/components/schemas/SchemaRuleWeekly'
+      discriminator:
+        propertyName: type
+        mapping:
+          daily: '#/components/schemas/SchemaRuleDaily'
+          weekly: '#/components/schemas/SchemaRuleWeekly'
+    SchemaCreateRequest:
+      title: SchemaCreateRequest
+      type: object
+      required:
+        - name
+        - data
+      properties:
+        name:
+          type: string
+          example: Tvättstugor
+        data:
+          type: object
+          $ref: '#/components/schemas/SchemaData'
+    Schema:
+      title: Schema
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Model'
+        - $ref: '#/components/schemas/SchemaCreateRequest'
+    BookingCreateRequest:
+      title: BookingCreateRequest
+      type: object
+      required:
+        - resource_id
+        - booked_from
+        - booked_to
+        - booked_by
+        - type
+      properties:
+        resource_id:
+          type: string
+          format: uuid
+          description: The booked resource
+        booked_from:
+          type: string
+          description: |
+            24h time of day, i.e. "HH:mm".
+            hours > 24 are allowed to indicate that a time slot spans
+            across midnight and into the next day
+          example: '04:00'
+        booked_to:
+          type: string
+          pattern: ^\d{2}:\d{2}$
+          description: |
+            24h time of day, i.e. "HH:mm".
+            hours > 24 are allowed to indicate that a time slot spans
+            across midnight and into the next day
+          example: '06:00'
+        booked_by:
+          type: string
+          description: |
+            the party claiming the resource.
+            format may vary depending on resource type.
+        type:
+          type: string
+          enum:
+            - user
+            - service-window
+    Booking:
+      title: Booking
+      allOf:
+        - $ref: '#/components/schemas/Model'
+        - $ref: '#/components/schemas/BookingCreateRequest'
+    TenantConfig:
+      title: TenantConfig
+      type: object
+    Tenant:
+      title: Tenant
+      type: object
+      required:
+        - id
+        - created_at
+        - updated_at
+        - name
+        - config
+      properties:
+        id:
+          type: string
+          example: kruthusen
+        created_at:
+          type: string
+          format: datetime
+        updated_at:
+          type: string
+          format: datetime
+        name:
+          type: string
+          example: ACME Inc.
+        config:
+          $ref: '#/components/schemas/TenantConfig'
+  responses:
+    Health:
+      description: Health Check response
+      content:
+        application/json:
+          example:
+            status: OK
+            database_version: PostgreSQL 15.8 on x86_64-pc-linux-musl
+          schema:
+            type: object
+            required:
+              - status
+            properties:
+              status:
+                type: string
+                example: ok
+              database_version:
+                type: string
+                example: PostgreSQL 15.7
+    Unauthorized:
+      description: Error message
+      content:
+        application/json:
+          example:
+            message: Unauthorized
+            description: You are not authorized to access this resource
+            request_id: PbMtZxrFhLNciaVMndIZkdQMHyiKUerV
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Error message
+      content:
+        application/json:
+          example:
+            message: Forbidden
+            description: You are not allowed to access this resource
+            request_id: PbMtZxrFhLNciaVMndIZkdQMHyiKUerV
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          example:
+            message: Bad request
+            description: The request was not valid
+            request_id: PbMtZxrFhLNciaVMndIZkdQMHyiKUerV
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          example:
+            message: Not Found
+            description: This entity does not exist
+            request_id: PbMtZxrFhLNciaVMndIZkdQMHyiKUerV
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          example:
+            message: Conflict
+            description: |
+              Unable perform the requested operation on
+              the specified resource
+            request_id: PbMtZxrFhLNciaVMndIZkdQMHyiKUerV
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          example:
+            message: Internal Server Error
+            request_id: PbMtZxrFhLNciaVMndIZkdQMHyiKUerV
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotImplemented:
+      description: Not Implemented
+      content:
+        application/json:
+          example:
+            message: Not Implemented
+            description: This path is not yet been implemented
+            request_id: PbMtZxrFhLNciaVMndIZkdQMHyiKUerV
+          schema:
+            $ref: '#/components/schemas/Error'
