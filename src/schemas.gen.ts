@@ -23,53 +23,32 @@ export const ModelSchema = {
     }
 } as const;
 
-export const ResourceILoqDataSchema = {
-    title: 'ResourceILoqData',
-    type: 'object',
-    required: ['calendar_id', 'network_module'],
-    properties: {
-        calendar_id: {
-            type: 'string',
-            description: 'refers to ILoq /api/v2/CalendarDataTitle'
-        },
-        network_module: {
-            type: 'object',
-            required: ['id', 'device_id', 'relay_id'],
-            properties: {
-                id: {
-                    type: 'string',
-                    description: 'refers to ILoq /api/v2/NetworkModule'
-                },
-                device_id: {
-                    type: 'string',
-                    description: 'refers to ILoq /api/v2/NetworkModuleDevice'
-                },
-                relay_id: {
-                    type: 'string',
-                    description: 'refers to ILoq /api/v2/NetworkModuleRelay'
-                }
-            }
-        }
-    }
-} as const;
-
 export const ResourceILoqSchema = {
     title: 'ResourceILoq',
     type: 'object',
-    required: ['type', 'data'],
+    required: ['type', 'calendar_id', 'network_module_id'],
     properties: {
         type: {
             type: 'string',
             enum: ['iloq']
         },
-        data: {
-            '$ref': '#/components/schemas/ResourceILoqData'
+        calendar_id: {
+            type: 'string',
+            description: 'refers to ILoq /api/v2/CalendarDataTitle'
+        },
+        network_module_id: {
+            type: 'string',
+            description: 'refers to ILoq /api/v2/NetworkModule'
+        },
+        network_relay_id: {
+            type: 'string',
+            description: 'refers to ILoq /api/v2/NetworkModuleRelay'
         }
     }
 } as const;
 
-export const ResourceCreateRequestSchema = {
-    title: 'ResourceCreateRequest',
+export const ResourceDataSchema = {
+    title: 'ResourceData',
     oneOf: [
         {
             '$ref': '#/components/schemas/ResourceILoq'
@@ -79,6 +58,17 @@ export const ResourceCreateRequestSchema = {
         propertyName: 'type',
         mapping: {
             iloq: '#/components/schemas/ResourceILoq'
+        }
+    }
+} as const;
+
+export const ResourceCreateRequestSchema = {
+    title: 'ResourceCreateRequest',
+    type: 'object',
+    required: ['data'],
+    properties: {
+        data: {
+            '$ref': '#/components/schemas/ResourceData'
         }
     }
 } as const;
@@ -122,84 +112,39 @@ export const SchemaSlotSchema = {
     properties: {
         from: {
             type: 'string',
-            description: `24h time of day without seconds, i.e "HH:mm".
-hours > 24 allowed for timeslots that span
-across midnight into the next day.
+            pattern: '^\\d{2}:\\d{2}$',
+            description: `24 hour time.
 `,
-            example: '04:00'
+            example: '22:00'
         },
         to: {
             type: 'string',
-            description: `24h time of day without seconds, i.e "HH:mm".
-hours > 24 allowed for timeslots that span
-across midnight into the next day.
+            pattern: '^\\d{2}:\\d{2}$',
+            description: `24 hour time.
+hours > 24 are allowed.
 `,
-            example: '06:00'
+            example: '26:00'
         }
     }
 } as const;
 
-export const SchemaRuleDailySchema = {
-    title: 'SchemaRuleDaily',
-    type: 'object',
-    required: ['type', 'slots'],
-    properties: {
-        type: {
-            type: 'string',
-            enum: ['daily']
-        },
-        slots: {
-            type: 'array',
-            minItems: 1,
-            maxItems: 1,
-            items: {
-                type: 'array',
-                items: {
-                    '$ref': '#/components/schemas/SchemaSlot'
-                }
-            }
-        }
-    }
-} as const;
-
-export const SchemaRuleWeeklySchema = {
-    title: 'SchemaRuleDaily',
-    type: 'object',
-    required: ['type', 'slots'],
-    properties: {
-        type: {
-            type: 'string',
-            enum: ['weekly']
-        },
-        slots: {
-            type: 'array',
-            minItems: 7,
-            maxItems: 7,
-            items: {
-                type: 'array',
-                items: {
-                    '$ref': '#/components/schemas/SchemaSlot'
-                }
-            }
-        }
-    }
-} as const;
-
-export const SchemaDataSchema = {
-    title: 'SchemaData',
+export const SchemaSlotsSchema = {
+    title: 'SchemaSlots',
+    type: 'array',
     oneOf: [
         {
-            '$ref': '#/components/schemas/SchemaRuleDaily'
+            minItems: 1,
+            maxItems: 1
         },
         {
-            '$ref': '#/components/schemas/SchemaRuleWeekly'
+            minItems: 7,
+            maxItems: 7
         }
     ],
-    discriminator: {
-        propertyName: 'type',
-        mapping: {
-            daily: '#/components/schemas/SchemaRuleDaily',
-            weekly: '#/components/schemas/SchemaRuleWeekly'
+    items: {
+        type: 'array',
+        items: {
+            '$ref': '#/components/schemas/SchemaSlot'
         }
     }
 } as const;
@@ -207,15 +152,18 @@ export const SchemaDataSchema = {
 export const SchemaCreateRequestSchema = {
     title: 'SchemaCreateRequest',
     type: 'object',
-    required: ['name', 'data'],
+    required: ['name', 'type', 'slots'],
     properties: {
         name: {
             type: 'string',
             example: 'Tvättstugor'
         },
-        data: {
-            type: 'object',
-            '$ref': '#/components/schemas/SchemaData'
+        type: {
+            type: 'string',
+            enum: ['daily', 'weekly']
+        },
+        slots: {
+            '$ref': '#/components/schemas/SchemaSlots'
         }
     }
 } as const;
@@ -236,27 +184,23 @@ export const SchemaSchema = {
 export const BookingCreateRequestSchema = {
     title: 'BookingCreateRequest',
     type: 'object',
-    required: ['resource_id', 'booked_from', 'booked_to', 'booked_by', 'type'],
+    required: ['resource_id', 'date', 'slot', 'booked_by', 'type'],
     properties: {
         resource_id: {
             type: 'string',
             format: 'uuid',
             description: 'The booked resource'
         },
-        booked_from: {
+        date: {
             type: 'string',
-            description: `24h time of day, i.e. "HH:mm".
-hours > 24 are allowed to indicate that a time slot spans
-across midnight and into the next day
-`,
-            example: '04:00'
+            pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+            description: 'ISO Date',
+            example: '2024-01-01'
         },
-        booked_to: {
+        slot: {
             type: 'string',
             pattern: '^\\d{2}:\\d{2}$',
-            description: `24h time of day, i.e. "HH:mm".
-hours > 24 are allowed to indicate that a time slot spans
-across midnight and into the next day
+            description: `24 hour time specifier
 `,
             example: '06:00'
         },
@@ -281,6 +225,47 @@ export const BookingSchema = {
         },
         {
             '$ref': '#/components/schemas/BookingCreateRequest'
+        }
+    ]
+} as const;
+
+export const ResourceSchemaCreateRequestSchema = {
+    title: 'ResourceSchemaCreateRequest',
+    type: 'object',
+    required: ['schema_id', 'resource_id', 'valid_from'],
+    properties: {
+        schema_id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        resource_id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        valid_from: {
+            type: 'string',
+            format: 'date-time'
+        }
+    }
+} as const;
+
+export const ResourceSchemaSchema = {
+    title: 'ResourceSchema',
+    allOf: [
+        {
+            '$ref': '#/components/schemas/Model'
+        },
+        {
+            '$ref': '#/components/schemas/ResourceSchemaCreateRequest'
+        },
+        {
+            type: 'object',
+            properties: {
+                valid_to: {
+                    type: 'string',
+                    format: 'date-time'
+                }
+            }
         }
     ]
 } as const;

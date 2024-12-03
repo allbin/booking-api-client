@@ -20,51 +20,31 @@ export declare const ModelSchema: {
         };
     };
 };
-export declare const ResourceILoqDataSchema: {
-    readonly title: "ResourceILoqData";
-    readonly type: "object";
-    readonly required: readonly ["calendar_id", "network_module"];
-    readonly properties: {
-        readonly calendar_id: {
-            readonly type: "string";
-            readonly description: "refers to ILoq /api/v2/CalendarDataTitle";
-        };
-        readonly network_module: {
-            readonly type: "object";
-            readonly required: readonly ["id", "device_id", "relay_id"];
-            readonly properties: {
-                readonly id: {
-                    readonly type: "string";
-                    readonly description: "refers to ILoq /api/v2/NetworkModule";
-                };
-                readonly device_id: {
-                    readonly type: "string";
-                    readonly description: "refers to ILoq /api/v2/NetworkModuleDevice";
-                };
-                readonly relay_id: {
-                    readonly type: "string";
-                    readonly description: "refers to ILoq /api/v2/NetworkModuleRelay";
-                };
-            };
-        };
-    };
-};
 export declare const ResourceILoqSchema: {
     readonly title: "ResourceILoq";
     readonly type: "object";
-    readonly required: readonly ["type", "data"];
+    readonly required: readonly ["type", "calendar_id", "network_module_id"];
     readonly properties: {
         readonly type: {
             readonly type: "string";
             readonly enum: readonly ["iloq"];
         };
-        readonly data: {
-            readonly $ref: "#/components/schemas/ResourceILoqData";
+        readonly calendar_id: {
+            readonly type: "string";
+            readonly description: "refers to ILoq /api/v2/CalendarDataTitle";
+        };
+        readonly network_module_id: {
+            readonly type: "string";
+            readonly description: "refers to ILoq /api/v2/NetworkModule";
+        };
+        readonly network_relay_id: {
+            readonly type: "string";
+            readonly description: "refers to ILoq /api/v2/NetworkModuleRelay";
         };
     };
 };
-export declare const ResourceCreateRequestSchema: {
-    readonly title: "ResourceCreateRequest";
+export declare const ResourceDataSchema: {
+    readonly title: "ResourceData";
     readonly oneOf: readonly [{
         readonly $ref: "#/components/schemas/ResourceILoq";
     }];
@@ -72,6 +52,16 @@ export declare const ResourceCreateRequestSchema: {
         readonly propertyName: "type";
         readonly mapping: {
             readonly iloq: "#/components/schemas/ResourceILoq";
+        };
+    };
+};
+export declare const ResourceCreateRequestSchema: {
+    readonly title: "ResourceCreateRequest";
+    readonly type: "object";
+    readonly required: readonly ["data"];
+    readonly properties: {
+        readonly data: {
+            readonly $ref: "#/components/schemas/ResourceData";
         };
     };
 };
@@ -109,87 +99,50 @@ export declare const SchemaSlotSchema: {
     readonly properties: {
         readonly from: {
             readonly type: "string";
-            readonly description: "24h time of day without seconds, i.e \"HH:mm\".\nhours > 24 allowed for timeslots that span\nacross midnight into the next day.\n";
-            readonly example: "04:00";
+            readonly pattern: "^\\d{2}:\\d{2}$";
+            readonly description: "24 hour time.\n";
+            readonly example: "22:00";
         };
         readonly to: {
             readonly type: "string";
-            readonly description: "24h time of day without seconds, i.e \"HH:mm\".\nhours > 24 allowed for timeslots that span\nacross midnight into the next day.\n";
-            readonly example: "06:00";
+            readonly pattern: "^\\d{2}:\\d{2}$";
+            readonly description: "24 hour time.\nhours > 24 are allowed.\n";
+            readonly example: "26:00";
         };
     };
 };
-export declare const SchemaRuleDailySchema: {
-    readonly title: "SchemaRuleDaily";
-    readonly type: "object";
-    readonly required: readonly ["type", "slots"];
-    readonly properties: {
-        readonly type: {
-            readonly type: "string";
-            readonly enum: readonly ["daily"];
-        };
-        readonly slots: {
-            readonly type: "array";
-            readonly minItems: 1;
-            readonly maxItems: 1;
-            readonly items: {
-                readonly type: "array";
-                readonly items: {
-                    readonly $ref: "#/components/schemas/SchemaSlot";
-                };
-            };
-        };
-    };
-};
-export declare const SchemaRuleWeeklySchema: {
-    readonly title: "SchemaRuleDaily";
-    readonly type: "object";
-    readonly required: readonly ["type", "slots"];
-    readonly properties: {
-        readonly type: {
-            readonly type: "string";
-            readonly enum: readonly ["weekly"];
-        };
-        readonly slots: {
-            readonly type: "array";
-            readonly minItems: 7;
-            readonly maxItems: 7;
-            readonly items: {
-                readonly type: "array";
-                readonly items: {
-                    readonly $ref: "#/components/schemas/SchemaSlot";
-                };
-            };
-        };
-    };
-};
-export declare const SchemaDataSchema: {
-    readonly title: "SchemaData";
+export declare const SchemaSlotsSchema: {
+    readonly title: "SchemaSlots";
+    readonly type: "array";
     readonly oneOf: readonly [{
-        readonly $ref: "#/components/schemas/SchemaRuleDaily";
+        readonly minItems: 1;
+        readonly maxItems: 1;
     }, {
-        readonly $ref: "#/components/schemas/SchemaRuleWeekly";
+        readonly minItems: 7;
+        readonly maxItems: 7;
     }];
-    readonly discriminator: {
-        readonly propertyName: "type";
-        readonly mapping: {
-            readonly daily: "#/components/schemas/SchemaRuleDaily";
-            readonly weekly: "#/components/schemas/SchemaRuleWeekly";
+    readonly items: {
+        readonly type: "array";
+        readonly items: {
+            readonly $ref: "#/components/schemas/SchemaSlot";
         };
     };
 };
 export declare const SchemaCreateRequestSchema: {
     readonly title: "SchemaCreateRequest";
     readonly type: "object";
-    readonly required: readonly ["name", "data"];
+    readonly required: readonly ["name", "type", "slots"];
     readonly properties: {
         readonly name: {
             readonly type: "string";
             readonly example: "Tvättstugor";
         };
-        readonly data: {
-            readonly type: "object";
-            readonly $ref: "#/components/schemas/SchemaData";
+        readonly type: {
+            readonly type: "string";
+            readonly enum: readonly ["daily", "weekly"];
+        };
+        readonly slots: {
+            readonly $ref: "#/components/schemas/SchemaSlots";
         };
     };
 };
@@ -205,22 +158,23 @@ export declare const SchemaSchema: {
 export declare const BookingCreateRequestSchema: {
     readonly title: "BookingCreateRequest";
     readonly type: "object";
-    readonly required: readonly ["resource_id", "booked_from", "booked_to", "booked_by", "type"];
+    readonly required: readonly ["resource_id", "date", "slot", "booked_by", "type"];
     readonly properties: {
         readonly resource_id: {
             readonly type: "string";
             readonly format: "uuid";
             readonly description: "The booked resource";
         };
-        readonly booked_from: {
+        readonly date: {
             readonly type: "string";
-            readonly description: "24h time of day, i.e. \"HH:mm\".\nhours > 24 are allowed to indicate that a time slot spans\nacross midnight and into the next day\n";
-            readonly example: "04:00";
+            readonly pattern: "^\\d{4}-\\d{2}-\\d{2}$";
+            readonly description: "ISO Date";
+            readonly example: "2024-01-01";
         };
-        readonly booked_to: {
+        readonly slot: {
             readonly type: "string";
             readonly pattern: "^\\d{2}:\\d{2}$";
-            readonly description: "24h time of day, i.e. \"HH:mm\".\nhours > 24 are allowed to indicate that a time slot spans\nacross midnight and into the next day\n";
+            readonly description: "24 hour time specifier\n";
             readonly example: "06:00";
         };
         readonly booked_by: {
@@ -239,6 +193,41 @@ export declare const BookingSchema: {
         readonly $ref: "#/components/schemas/Model";
     }, {
         readonly $ref: "#/components/schemas/BookingCreateRequest";
+    }];
+};
+export declare const ResourceSchemaCreateRequestSchema: {
+    readonly title: "ResourceSchemaCreateRequest";
+    readonly type: "object";
+    readonly required: readonly ["schema_id", "resource_id", "valid_from"];
+    readonly properties: {
+        readonly schema_id: {
+            readonly type: "string";
+            readonly format: "uuid";
+        };
+        readonly resource_id: {
+            readonly type: "string";
+            readonly format: "uuid";
+        };
+        readonly valid_from: {
+            readonly type: "string";
+            readonly format: "date-time";
+        };
+    };
+};
+export declare const ResourceSchemaSchema: {
+    readonly title: "ResourceSchema";
+    readonly allOf: readonly [{
+        readonly $ref: "#/components/schemas/Model";
+    }, {
+        readonly $ref: "#/components/schemas/ResourceSchemaCreateRequest";
+    }, {
+        readonly type: "object";
+        readonly properties: {
+            readonly valid_to: {
+                readonly type: "string";
+                readonly format: "date-time";
+            };
+        };
     }];
 };
 export declare const TenantConfigSchema: {

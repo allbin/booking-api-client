@@ -5,19 +5,14 @@ export type BookingCreateRequest = {
      */
     resource_id: string;
     /**
-     * 24h time of day, i.e. "HH:mm".
-     * hours > 24 are allowed to indicate that a time slot spans
-     * across midnight and into the next day
-     *
+     * ISO Date
      */
-    booked_from: string;
+    date: string;
     /**
-     * 24h time of day, i.e. "HH:mm".
-     * hours > 24 are allowed to indicate that a time slot spans
-     * across midnight and into the next day
+     * 24 hour time specifier
      *
      */
-    booked_to: string;
+    slot: string;
     /**
      * the party claiming the resource.
      * format may vary depending on resource type.
@@ -39,71 +34,54 @@ export type Model = {
     updated_at: string;
 };
 export type Resource = Model & ResourceCreateRequest;
-export type ResourceCreateRequest = ResourceILoq;
+export type ResourceCreateRequest = {
+    data: ResourceData;
+};
+export type ResourceData = ResourceILoq;
 export type ResourceILoq = {
     type: 'iloq';
-    data: ResourceILoqData;
-};
-export type ResourceILoqData = {
     /**
      * refers to ILoq /api/v2/CalendarDataTitle
      */
     calendar_id: string;
-    network_module: {
-        /**
-         * refers to ILoq /api/v2/NetworkModule
-         */
-        id: string;
-        /**
-         * refers to ILoq /api/v2/NetworkModuleDevice
-         */
-        device_id: string;
-        /**
-         * refers to ILoq /api/v2/NetworkModuleRelay
-         */
-        relay_id: string;
-    };
+    /**
+     * refers to ILoq /api/v2/NetworkModule
+     */
+    network_module_id: string;
+    /**
+     * refers to ILoq /api/v2/NetworkModuleRelay
+     */
+    network_relay_id?: string;
+};
+export type ResourceSchema = Model & ResourceSchemaCreateRequest & {
+    valid_to?: string;
+};
+export type ResourceSchemaCreateRequest = {
+    schema_id: string;
+    resource_id: string;
+    valid_from: string;
 };
 export type Schema = Model & SchemaCreateRequest;
 export type SchemaCreateRequest = {
     name: string;
-    data: SchemaData;
+    type: 'daily' | 'weekly';
+    slots: SchemaSlots;
 };
-export type SchemaData = SchemaRuleDaily | SchemaRuleWeekly;
-export type SchemaRuleDaily = {
-    type: 'daily';
-    slots: [
-        Array<SchemaSlot>
-    ];
-};
-export type SchemaRuleWeekly = {
-    type: 'weekly';
-    slots: [
-        Array<SchemaSlot>,
-        Array<SchemaSlot>,
-        Array<SchemaSlot>,
-        Array<SchemaSlot>,
-        Array<SchemaSlot>,
-        Array<SchemaSlot>,
-        Array<SchemaSlot>
-    ];
-};
+export type type2 = 'daily' | 'weekly';
 export type SchemaSlot = {
     /**
-     * 24h time of day without seconds, i.e "HH:mm".
-     * hours > 24 allowed for timeslots that span
-     * across midnight into the next day.
+     * 24 hour time.
      *
      */
     from: string;
     /**
-     * 24h time of day without seconds, i.e "HH:mm".
-     * hours > 24 allowed for timeslots that span
-     * across midnight into the next day.
+     * 24 hour time.
+     * hours > 24 are allowed.
      *
      */
     to: string;
 };
+export type SchemaSlots = Array<Array<SchemaSlot>>;
 export type Tenant = {
     id: string;
     created_at: string;
@@ -144,13 +122,13 @@ export type CreateSchemaData = {
 };
 export type CreateSchemaResponse = (Schema);
 export type CreateSchemaError = (Error);
-export type DeleteSchemaData = {
-    path: {
-        id: string;
+export type ListBookingsData = {
+    query: {
+        date_end: string;
+        date_start: string;
+        resource_id: string;
     };
 };
-export type DeleteSchemaResponse = (void);
-export type DeleteSchemaError = (Error);
 export type ListBookingsResponse = (Array<Booking>);
 export type ListBookingsError = (Error);
 export type CreateBookingData = {
@@ -158,3 +136,16 @@ export type CreateBookingData = {
 };
 export type CreateBookingResponse = (Booking);
 export type CreateBookingError = (Error);
+export type ListResourceSchemasData = {
+    query?: {
+        resource_id?: string;
+        schema_id?: string;
+    };
+};
+export type ListResourceSchemasResponse = (Array<ResourceSchema>);
+export type ListResourceSchemasError = (Error);
+export type CreateResourceSchemaData = {
+    body: ResourceSchemaCreateRequest;
+};
+export type CreateResourceSchemaResponse = (ResourceSchema);
+export type CreateResourceSchemaError = (Error);

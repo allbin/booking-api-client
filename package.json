@@ -1,6 +1,6 @@
 {
   "name": "@allbin/booking-api-client",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -15,6 +15,6 @@
     "typescript": "^5.6.3"
   },
   "dependencies": {
-    "@hey-api/client-fetch": "^0.4.4"
+    "@hey-api/client-fetch": "^0.5.0"
   }
 }
